@@ -16,7 +16,7 @@ export const index = async (req : Request, res : Response) =>{
 
     res.status(200).json({
         success: true,
-        message : "supplier Group Create"
+        message : "supplier Created"
     })
 }
 
