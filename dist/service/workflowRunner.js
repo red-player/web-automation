@@ -1,0 +1,183 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runWorkflow = void 0;
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const pageUtils_1 = require("./pageUtils");
+const formFiller_1 = require("./formFiller");
+const waitForResponse_1 = require("./waitForResponse");
+const screenNavigate_1 = require("./screenNavigate");
+const getActiveSelector_1 = require("./getActiveSelector");
+/**
+ * Utility to replace placeholders like {{variableName}} with their runtime values.
+ */
+const resolveTemplates = (val, variables) => {
+    if (typeof val === 'string') {
+        return val.replace(/\{\{\s*([^}]+)\s*\}\}/g, (_, key) => {
+            const trimmedKey = key.trim();
+            return variables[trimmedKey] !== undefined ? String(variables[trimmedKey]) : `{{${trimmedKey}}}`;
+        });
+    }
+    return val;
+};
+const runWorkflow = async (page, workflow, variables = {}) => {
+    const logs = [];
+    const log = (msg) => {
+        const timestamp = new Date().toISOString();
+        const formatted = `[${timestamp}] ${msg}`;
+        console.log(formatted);
+        logs.push(formatted);
+    };
+    log(`🚀 Starting workflow: "${workflow.name}"`);
+    log(`📋 Description: ${workflow.description || 'No description provided'}`);
+    try {
+        for (let i = 0; i < workflow.steps.length; i++) {
+            const step = workflow.steps[i];
+            log(`🔄 [Step ${i + 1}/${workflow.steps.length}] Executing step: "${step.type}"`);
+            // Resolve templated properties
+            const resolvedUrl = resolveTemplates(step.url, variables);
+            const resolvedValue = resolveTemplates(step.value, variables);
+            const resolvedText = resolveTemplates(step.text, variables);
+            const resolvedSelector = resolveTemplates(step.selector, variables);
+            const resolvedScreenshotName = resolveTemplates(step.screenshotName, variables);
+            switch (step.type) {
+                case 'goto':
+                    if (!resolvedUrl)
+                        throw new Error('Missing URL for "goto" step.');
+                    log(`  Navigating to URL: ${resolvedUrl}`);
+                    await page.goto(resolvedUrl, { timeout: step.timeout || 30000 });
+                    break;
+                case 'click':
+                    log(`  Clicking element: ${step.name || resolvedSelector}`);
+                    await (0, pageUtils_1.performActionOnElement)(page, {
+                        action: 'click',
+                        selector: resolvedSelector || step.name,
+                        isXpath: step.isXpath ?? false,
+                        waitOptions: { state: 'visible', timeout: step.timeout || 10000 }
+                    });
+                    break;
+                case 'fill':
+                    log(`  Filling element: ${step.name || resolvedSelector} with value: ${resolvedValue}`);
+                    await (0, pageUtils_1.performActionOnElement)(page, {
+                        action: 'fill',
+                        selector: resolvedSelector || step.name,
+                        isXpath: step.isXpath ?? false,
+                        value: resolvedValue,
+                        waitOptions: { state: 'visible', timeout: step.timeout || 10000 }
+                    });
+                    break;
+                case 'fillForm':
+                    if (!step.fields)
+                        throw new Error('Missing fields array for "fillForm" step.');
+                    log(`  Filling form fields (Total: ${step.fields.length})`);
+                    // Apply runtime variable overrides to form fields
+                    const fieldsToFill = step.fields.map((field) => {
+                        const overrideValue = variables[field.name];
+                        if (overrideValue !== undefined) {
+                            log(`    Applying override: Field "${field.name}" = "${overrideValue}"`);
+                            return { ...field, value: overrideValue };
+                        }
+                        return field;
+                    });
+                    await (0, formFiller_1.fillFormFields)(page, fieldsToFill);
+                    break;
+                case 'selectOption':
+                    log(`  Selecting option in element: ${step.name || resolvedSelector} with option: ${resolvedValue}`);
+                    await (0, pageUtils_1.performActionOnElement)(page, {
+                        action: 'selectOption',
+                        selector: resolvedSelector || step.name,
+                        isXpath: step.isXpath ?? false,
+                        value: resolvedValue,
+                        waitOptions: { state: 'visible', timeout: step.timeout || 10000 }
+                    });
+                    break;
+                case 'check':
+                    log(`  Checking element: ${step.name || resolvedSelector}`);
+                    await (0, pageUtils_1.performActionOnElement)(page, {
+                        action: 'check',
+                        selector: resolvedSelector || step.name,
+                        isXpath: step.isXpath ?? false,
+                        waitOptions: { state: 'visible', timeout: step.timeout || 10000 }
+                    });
+                    break;
+                case 'uncheck':
+                    log(`  Unchecking element: ${step.name || resolvedSelector}`);
+                    await (0, pageUtils_1.performActionOnElement)(page, {
+                        action: 'uncheck',
+                        selector: resolvedSelector || step.name,
+                        isXpath: step.isXpath ?? false,
+                        waitOptions: { state: 'visible', timeout: step.timeout || 10000 }
+                    });
+                    break;
+                case 'waitForSelector':
+                    log(`  Waiting for selector: ${step.name || resolvedSelector}`);
+                    const resolved = step.isXpath === true ? resolvedSelector : await (0, getActiveSelector_1.getActiveSelector)(page, resolvedSelector || step.name || '');
+                    if (!resolved) {
+                        throw new Error(`Failed to dynamically resolve selector for wait step: ${resolvedSelector || step.name}`);
+                    }
+                    await page.waitForSelector(resolved, { state: 'visible', timeout: step.timeout || 10000 });
+                    break;
+                case 'waitForResponse':
+                    if (!step.urlContains)
+                        throw new Error('Missing urlContains for "waitForResponse" step.');
+                    log(`  Waiting for network response: ${step.method || 'POST'} containing "${step.urlContains}"`);
+                    await (0, waitForResponse_1.waitForApiResponse)(page, {
+                        urlContains: step.urlContains,
+                        method: step.method || 'POST',
+                        statusCode: step.statusCode,
+                        timeout: step.timeout || 15000
+                    });
+                    break;
+                case 'assertText':
+                    if (!resolvedText)
+                        throw new Error('Missing text for "assertText" step.');
+                    log(`  Asserting visible text: "${resolvedText}"`);
+                    await page.waitForSelector(`text="${resolvedText}"`, { state: 'visible', timeout: step.timeout || 10000 });
+                    break;
+                case 'screenshot':
+                    const screenshotName = resolvedScreenshotName || `screenshot_${Date.now()}`;
+                    const screenshotsDir = path_1.default.join(process.cwd(), 'screenshots');
+                    if (!fs_1.default.existsSync(screenshotsDir)) {
+                        fs_1.default.mkdirSync(screenshotsDir, { recursive: true });
+                    }
+                    const screenshotPath = path_1.default.join(screenshotsDir, `${screenshotName}.png`);
+                    log(`  Capturing screenshot. Saving to: ${screenshotPath}`);
+                    await page.screenshot({ path: screenshotPath, fullPage: true });
+                    break;
+                case 'navigateSidebar':
+                    if (!step.levels)
+                        throw new Error('Missing levels configuration for "navigateSidebar" step.');
+                    log(`  Navigating sidebar: ${JSON.stringify(step.levels)}`);
+                    await (0, screenNavigate_1.navigateSidebarMenu)(page, step.levels, step.timeout || 2000);
+                    break;
+                default:
+                    throw new Error(`Unsupported step type: "${step.type}"`);
+            }
+            log(`✅ [Step ${i + 1}/${workflow.steps.length}] Completed successfully.`);
+        }
+        log(`🎉 Workflow "${workflow.name}" completed successfully!`);
+        return { success: true, logs };
+    }
+    catch (err) {
+        const errorMsg = err.message || String(err);
+        log(`❌ Error executing workflow: ${errorMsg}`);
+        // Automatically take an error screenshot
+        try {
+            const screenshotsDir = path_1.default.join(process.cwd(), 'screenshots');
+            if (!fs_1.default.existsSync(screenshotsDir)) {
+                fs_1.default.mkdirSync(screenshotsDir, { recursive: true });
+            }
+            const errorScreenshotPath = path_1.default.join(screenshotsDir, `error_workflow_${Date.now()}.png`);
+            await page.screenshot({ path: errorScreenshotPath, fullPage: true });
+            log(`📸 Saved error screenshot to: ${errorScreenshotPath}`);
+        }
+        catch (ssErr) {
+            log(`⚠️ Failed to capture error screenshot: ${ssErr}`);
+        }
+        return { success: false, error: errorMsg, logs };
+    }
+};
+exports.runWorkflow = runWorkflow;

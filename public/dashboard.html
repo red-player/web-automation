@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Automation Dashboard</title>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            brand: {
+              glow: '#8b5cf6',
+              bg: '#0b0f19',
+              card: '#161b26',
+              accent: '#3b82f6',
+              success: '#10b981',
+              error: '#ef4444'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #080c14;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0, transparent 50%), 
+        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.1) 0, transparent 50%);
+      background-attachment: fixed;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-glow to-brand-accent flex items-center justify-center shadow-lg shadow-purple-500/20">
+          <i data-lucide="play" class="text-white fill-white h-5 w-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            QA Automation <span class="text-xs bg-purple-500/20 text-purple-400 font-semibold px-2 py-0.5 rounded-full border border-purple-500/30">Engine</span>
+          </h1>
+          <p class="text-xs text-slate-400">Decoupled Business Logic & Self-Healing Testing</p>
+        </div>
+      </div>
+      
+      <!-- Recipe Selector and Quick Actions -->
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 rounded-lg p-1">
+          <span class="text-xs text-slate-400 px-2 font-medium">Recipe:</span>
+          <select id="recipe-selector" class="bg-slate-950 border border-slate-800 text-xs rounded-md py-1.5 px-3 focus:outline-none focus:border-brand-glow text-slate-200 min-w-[200px]" onchange="loadSelectedRecipe()">
+            <option value="">-- Create New Recipe --</option>
+          </select>
+        </div>
+
+        <button onclick="createNewRecipe()" class="flex items-center space-x-1 bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-800 transition">
+          <i data-lucide="plus" class="h-4 w-4"></i>
+          <span>New</span>
+        </button>
+
+        <button onclick="saveRecipe()" class="flex items-center space-x-1 bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-800 transition">
+          <i data-lucide="save" class="h-4 w-4"></i>
+          <span>Save</span>
+        </button>
+
+        <button onclick="downloadRecipeJSON()" class="flex items-center space-x-1 bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-800 transition" title="Export as JSON">
+          <i data-lucide="download" class="h-4 w-4"></i>
+          <span>Export</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-6 py-8 flex-1 w-full grid grid-cols-12 gap-8">
+    
+    <!-- Left Column: Recipe Step Builder (7 Columns) -->
+    <section class="col-span-7 flex flex-col space-y-6">
+      
+      <!-- Recipe Metadata Card -->
+      <div class="bg-brand-card/60 backdrop-blur-md rounded-2xl border border-slate-800/80 p-6 shadow-xl flex flex-col space-y-4">
+        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+          <i data-lucide="file-text" class="h-4 w-4 text-purple-400"></i> Recipe Details
+        </h2>
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1.5">Recipe Filename (No .json)</label>
+            <input type="text" id="recipe-name" placeholder="my-workflow-recipe" class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-glow focus:ring-1 focus:ring-purple-500/25">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1.5">Description</label>
+            <textarea id="recipe-desc" rows="2" placeholder="Describe the business flow simulated by this test..." class="w-full bg-slate-950/80 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-glow focus:ring-1 focus:ring-purple-500/25"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step List Manager -->
+      <div class="bg-brand-card/60 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-xl flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/20">
+          <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+            <i data-lucide="list" class="h-4 w-4 text-purple-400"></i> Workflow Steps (<span id="step-count">0</span>)
+          </h2>
+          
+          <div class="flex items-center space-x-2">
+            <select id="add-step-type" class="bg-slate-950 border border-slate-800 text-xs rounded-md py-1 px-2 focus:outline-none focus:border-brand-glow text-slate-300">
+              <option value="goto">goto (Navigate)</option>
+              <option value="click">click (Element)</option>
+              <option value="fill">fill (Text field)</option>
+              <option value="fillForm">fillForm (Form array)</option>
+              <option value="selectOption">selectOption (Dropdown)</option>
+              <option value="check">check (Checkbox)</option>
+              <option value="uncheck">uncheck (Checkbox)</option>
+              <option value="waitForSelector">waitForSelector</option>
+              <option value="waitForResponse">waitForResponse</option>
+              <option value="assertText">assertText (Validation)</option>
+              <option value="screenshot">screenshot</option>
+              <option value="navigateSidebar">navigateSidebar</option>
+            </select>
+            <button onclick="addStep()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center space-x-1 shadow-lg shadow-purple-500/10 transition">
+              <i data-lucide="plus" class="h-3 w-3"></i>
+              <span>Add Step</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step Items -->
+        <div id="steps-container" class="p-6 overflow-y-auto max-h-[500px] flex-1 space-y-4">
+          <!-- Populated by JS -->
+          <div class="text-center py-12 text-slate-500 text-sm">
+            <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+            No steps defined. Add a step or select an existing recipe to begin.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Right Column: Console Terminal, Run controls, Screenshots (5 Columns) -->
+    <section class="col-span-5 flex flex-col space-y-6">
+      
+      <!-- Run Controls Card -->
+      <div class="bg-brand-card/60 backdrop-blur-md rounded-2xl border border-slate-800/80 p-6 shadow-xl flex flex-col space-y-5">
+        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+          <i data-lucide="sliders" class="h-4 w-4 text-blue-400"></i> Execution Controls
+        </h2>
+
+        <!-- Headless / Headed -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <label class="text-sm font-medium text-slate-200">Headless Execution</label>
+            <p class="text-xs text-slate-400">Run browser in the background without UI window.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="run-headless" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-slate-850 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-350 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+          </label>
+        </div>
+
+        <!-- Dynamic Variables Editor -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs text-slate-400 font-medium uppercase">Dynamic Variables (JSON)</label>
+            <span class="text-[10px] text-slate-500 font-mono">Injected as {{var}} at runtime</span>
+          </div>
+          <textarea id="run-variables" rows="4" class="w-full bg-slate-950/80 border border-slate-800 rounded-lg p-2 font-mono text-xs text-blue-300 focus:outline-none focus:border-blue-500" placeholder='{
+  "username": "subramani@gmail.com",
+  "password": "test@123",
+  "moduleName": "POS"
+}'></textarea>
+        </div>
+
+        <!-- Trigger Button -->
+        <button id="run-btn" onclick="executeWorkflow()" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 shadow-lg shadow-purple-500/25 transition duration-300 transform active:scale-[0.98]">
+          <i data-lucide="play" class="h-4 w-4 fill-white"></i>
+          <span>Execute Test Recipe</span>
+        </button>
+      </div>
+
+      <!-- Live Console Log Card -->
+      <div class="bg-slate-950 rounded-2xl border border-slate-800/80 shadow-xl flex-1 flex flex-col overflow-hidden min-h-[300px]">
+        <div class="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between bg-slate-950">
+          <h2 class="text-xs font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+            <i data-lucide="terminal" class="h-3.5 w-3.5 text-green-400"></i> Execution Terminal Console
+          </h2>
+          <button onclick="clearConsole()" class="text-slate-500 hover:text-slate-300 transition" title="Clear console">
+            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+          </button>
+        </div>
+        <div id="console-output" class="p-4 font-mono text-xs text-emerald-400/90 overflow-y-auto flex-1 max-h-[300px] space-y-1.5 leading-relaxed bg-[#05070a]">
+          <span class="text-slate-600">[Idle] Waiting for test execution to start...</span>
+        </div>
+      </div>
+
+      <!-- Screenshot Preview Card -->
+      <div class="bg-brand-card/60 backdrop-blur-md rounded-2xl border border-slate-800/80 p-6 shadow-xl flex flex-col space-y-4">
+        <h2 class="text-sm font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+          <i data-lucide="image" class="h-4 w-4 text-purple-400"></i> Visual Artifacts (Screenshots)
+        </h2>
+        <div id="screenshot-container" class="grid grid-cols-2 gap-3">
+          <!-- Populated by screenshots in logs -->
+          <div class="col-span-2 text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-600 text-xs">
+            No screenshots captured yet. Add a "screenshot" step to your workflow.
+          </div>
+        </div>
+      </div>
+      
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950/40 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-6">
+      Adaptive Automation & Testing Framework. Powered by Playwright & Express.
+    </div>
+  </footer>
+
+  <script>
+    let currentRecipe = {
+      name: "",
+      description: "",
+      steps: []
+    };
+
+    // Initialize Page
+    document.addEventListener("DOMContentLoaded", () => {
+      loadRecipeList();
+      lucide.createIcons();
+    });
+
+    const basePath = '/tancem-automation/v1';
+
+    // 1. Fetch available recipes
+    async function loadRecipeList() {
+      try {
+        const response = await fetch(`${basePath}/recipes`);
+        const recipes = await response.json();
+        const selector = document.getElementById("recipe-selector");
+        
+        // Clear except first
+        selector.innerHTML = '<option value="">-- Create New Recipe --</option>';
+        
+        recipes.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          selector.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Failed to load recipes:", err);
+      }
+    }
+
+    // 2. Load Selected Recipe from server
+    async function loadSelectedRecipe() {
+      const select = document.getElementById("recipe-selector");
+      const recipeName = select.value;
+      if (!recipeName) {
+        createNewRecipe();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${basePath}/recipes/${recipeName}`);
+        if (!response.ok) throw new Error("Failed to load recipe details");
+        const recipe = await response.json();
+        
+        currentRecipe = recipe;
+        document.getElementById("recipe-name").value = recipeName;
+        document.getElementById("recipe-desc").value = recipe.description || "";
+        
+        renderSteps();
+        appendConsoleLog(`📂 Loaded recipe "${recipeName}" from server.`);
+      } catch (err) {
+        appendConsoleLog(`❌ Error loading recipe: ${err.message}`);
+      }
+    }
+
+    // 3. Create a new recipe template
+    function createNewRecipe() {
+      currentRecipe = {
+        name: "",
+        description: "",
+        steps: []
+      };
+      document.getElementById("recipe-name").value = "";
+      document.getElementById("recipe-desc").value = "";
+      document.getElementById("recipe-selector").value = "";
+      renderSteps();
+      appendConsoleLog("✨ Created new empty recipe.");
+    }
+
+    // 4. Save current recipe to server
+    async function saveRecipe() {
+      const nameInput = document.getElementById("recipe-name").value.trim();
+      const descInput = document.getElementById("recipe-desc").value.trim();
+
+      if (!nameInput) {
+        alert("Please enter a Recipe Filename before saving.");
+        return;
+      }
+
+      currentRecipe.name = nameInput;
+      currentRecipe.description = descInput;
+
+      // Extract values from step inputs before saving
+      extractStepValuesFromDOM();
+
+      try {
+        const response = await fetch(`${basePath}/recipes/${nameInput}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentRecipe)
+        });
+
+        if (response.ok) {
+          appendConsoleLog(`💾 Recipe "${nameInput}" successfully saved to server!`);
+          await loadRecipeList();
+          document.getElementById("recipe-selector").value = nameInput;
+        } else {
+          const errData = await response.json();
+          throw new Error(errData.message || "Failed to save");
+        }
+      } catch (err) {
+        appendConsoleLog(`❌ Save error: ${err.message}`);
+      }
+    }
+
+    // 5. Download recipe JSON to client machine
+    function downloadRecipeJSON() {
+      extractStepValuesFromDOM();
+      const nameInput = document.getElementById("recipe-name").value.trim() || "recipe";
+      currentRecipe.name = nameInput;
+      currentRecipe.description = document.getElementById("recipe-desc").value.trim();
+
+      const blob = new Blob([JSON.stringify(currentRecipe, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${nameInput}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      appendConsoleLog(`📥 Exported recipe JSON to local file: "${nameInput}.json"`);
+    }
+
+    // 6. Execute current recipe
+    async function executeWorkflow() {
+      const runBtn = document.getElementById("run-btn");
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<span class="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> Running...';
+      
+      clearConsole();
+      document.getElementById("screenshot-container").innerHTML = `
+        <div class="col-span-2 text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-650 text-xs">
+          Loading screenshots during run...
+        </div>`;
+
+      // Extract current step states
+      extractStepValuesFromDOM();
+      
+      const headless = document.getElementById("run-headless").checked;
+      let variables = {};
+      try {
+        const varsInput = document.getElementById("run-variables").value;
+        variables = varsInput ? JSON.parse(varsInput) : {};
+      } catch (e) {
+        alert("Invalid variables JSON. Please check syntax.");
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i data-lucide="play" class="h-4 w-4 fill-white"></i> <span>Execute Test Recipe</span>';
+        lucide.createIcons();
+        return;
+      }
+
+      appendConsoleLog("🛰️ Sending execution request to backend engine...");
+
+      try {
+        const response = await fetch(`${basePath}/run-workflow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            steps: currentRecipe.steps,
+            variables,
+            headless
+          })
+        });
+
+        const result = await response.json();
+        
+        // Print execution logs
+        if (result.logs && Array.isArray(result.logs)) {
+          result.logs.forEach(logLine => appendConsoleLog(logLine));
+        }
+
+        if (result.success) {
+          appendConsoleLog("🟢 TEST RESULTS: SUCCESS");
+        } else {
+          appendConsoleLog(`🔴 TEST RESULTS: FAILED - ${result.error || 'Unknown execution error'}`);
+        }
+
+        // Process screenshots from logs
+        extractScreenshotsFromLogs(result.logs || []);
+
+      } catch (err) {
+        appendConsoleLog(`❌ Connection error: ${err.message}`);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i data-lucide="play" class="h-4 w-4 fill-white"></i> <span>Execute Test Recipe</span>';
+        lucide.createIcons();
+      }
+    }
+
+    // 7. Add step
+    function addStep() {
+      const type = document.getElementById("add-step-type").value;
+      const newStep = { type };
+      
+      // Default structure based on type
+      if (type === 'goto') newStep.url = 'https://';
+      if (type === 'click' || type === 'fill' || type === 'selectOption') {
+        newStep.name = '';
+        newStep.selector = '';
+        newStep.isXpath = false;
+      }
+      if (type === 'fillForm') newStep.fields = [];
+      if (type === 'waitForResponse') {
+        newStep.urlContains = '';
+        newStep.method = 'POST';
+      }
+      if (type === 'assertText') newStep.text = '';
+      if (type === 'navigateSidebar') newStep.levels = { "first": "" };
+
+      // Save previous states
+      extractStepValuesFromDOM();
+      
+      currentRecipe.steps.push(newStep);
+      renderSteps();
+    }
+
+    // Render Steps List dynamically
+    function renderSteps() {
+      const container = document.getElementById("steps-container");
+      document.getElementById("step-count").textContent = currentRecipe.steps.length;
+
+      if (currentRecipe.steps.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-500 text-sm">
+            <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+            No steps defined. Add a step or select an existing recipe to begin.
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = "";
+
+      currentRecipe.steps.forEach((step, idx) => {
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "step-item bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3 relative group hover:border-slate-700/80 transition shadow-md";
+        stepDiv.setAttribute("data-index", idx);
+
+        let fieldsHTML = "";
+
+        // Render input forms depending on step type
+        if (step.type === 'goto') {
+          fieldsHTML = `
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Target URL</label>
+              <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-blue-300 font-mono step-url" value="${step.url || ''}">
+            </div>`;
+        } else if (step.type === 'click' || step.type === 'check' || step.type === 'uncheck' || step.type === 'waitForSelector') {
+          fieldsHTML = `
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Logical Name / Text</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 step-name" value="${step.name || ''}" placeholder="e.g. Create">
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Selector Override</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 font-mono step-selector" value="${step.selector || ''}" placeholder="css/xpath override">
+              </div>
+              <div class="col-span-2 flex items-center space-x-2">
+                <input type="checkbox" class="rounded border-slate-800 bg-slate-950 text-purple-600 focus:ring-purple-500 step-xpath" ${step.isXpath ? 'checked' : ''}>
+                <span class="text-[10px] text-slate-400 font-medium">Use Strict CSS/XPath (Disable Heuristics Search)</span>
+              </div>
+            </div>`;
+        } else if (step.type === 'fill' || step.type === 'selectOption') {
+          fieldsHTML = `
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Field Name / Label</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 step-name" value="${step.name || ''}" placeholder="e.g. email">
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Value (supports {{vars}})</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-blue-300 step-value" value="${step.value || ''}">
+              </div>
+              <div class="col-span-2">
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Selector Override</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 font-mono step-selector" value="${step.selector || ''}">
+              </div>
+              <div class="col-span-2 flex items-center space-x-2">
+                <input type="checkbox" class="rounded border-slate-800 bg-slate-950 text-purple-600 focus:ring-purple-500 step-xpath" ${step.isXpath ? 'checked' : ''}>
+                <span class="text-[10px] text-slate-400 font-medium">Use Strict CSS/XPath (Disable Heuristics Search)</span>
+              </div>
+            </div>`;
+        } else if (step.type === 'fillForm') {
+          const fieldsCount = step.fields ? step.fields.length : 0;
+          fieldsHTML = `
+            <div class="border border-slate-800/80 rounded-lg p-3 bg-slate-950/40">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Form Fields Array (${fieldsCount})</span>
+                <button onclick="editFormFields(${idx})" class="text-[10px] text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1">
+                  <i data-lucide="edit-3" class="h-3 w-3"></i> Edit Fields Spec
+                </button>
+              </div>
+              <p class="text-xs text-slate-500">${fieldsCount > 0 ? step.fields.map(f => f.name).join(', ') : 'No fields defined yet. Click Edit to add fields.'}</p>
+            </div>`;
+        } else if (step.type === 'waitForResponse') {
+          fieldsHTML = `
+            <div class="grid grid-cols-3 gap-3">
+              <div class="col-span-2">
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">URL Substring Keyword</label>
+                <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 font-mono step-urlcontains" value="${step.urlContains || ''}" placeholder="/api/suppliers">
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">HTTP Method</label>
+                <select class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1.5 text-xs text-slate-200 step-method">
+                  <option value="POST" ${step.method === 'POST' ? 'selected' : ''}>POST</option>
+                  <option value="GET" ${step.method === 'GET' ? 'selected' : ''}>GET</option>
+                  <option value="PUT" ${step.method === 'PUT' ? 'selected' : ''}>PUT</option>
+                  <option value="DELETE" ${step.method === 'DELETE' ? 'selected' : ''}>DELETE</option>
+                </select>
+              </div>
+            </div>`;
+        } else if (step.type === 'assertText') {
+          fieldsHTML = `
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Assertion Text (Case-insensitive)</label>
+              <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 step-text" value="${step.text || ''}" placeholder="e.g. Success">
+            </div>`;
+        } else if (step.type === 'screenshot') {
+          fieldsHTML = `
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Screenshot Name (optional)</label>
+              <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs text-slate-200 font-mono step-screenshotname" value="${step.screenshotName || ''}" placeholder="my_screenshot">
+            </div>`;
+        } else if (step.type === 'navigateSidebar') {
+          const levelsJSON = step.levels ? JSON.stringify(step.levels) : '{"first":""}';
+          fieldsHTML = `
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Sidebar Levels (JSON)</label>
+              <input type="text" class="w-full bg-slate-950 border border-slate-850 rounded px-2 py-1 text-xs font-mono text-slate-200 step-levels" value='${levelsJSON}'>
+            </div>`;
+        }
+
+        stepDiv.innerHTML = `
+          <!-- Drag / Control buttons -->
+          <div class="flex items-center justify-between border-b border-slate-850 pb-2 mb-1">
+            <div class="flex items-center space-x-2">
+              <span class="h-5 w-5 bg-slate-950 rounded border border-slate-800 text-[10px] font-bold text-slate-400 flex items-center justify-center">${idx + 1}</span>
+              <span class="text-xs font-semibold text-purple-400 capitalize tracking-wide font-mono">${step.type}</span>
+            </div>
+            
+            <div class="flex items-center space-x-1.5">
+              <button onclick="moveStep(${idx}, -1)" class="p-1 hover:bg-slate-800 rounded text-slate-450 hover:text-slate-200 transition" title="Move Up">
+                <i data-lucide="chevron-up" class="h-3.5 w-3.5"></i>
+              </button>
+              <button onclick="moveStep(${idx}, 1)" class="p-1 hover:bg-slate-800 rounded text-slate-450 hover:text-slate-200 transition" title="Move Down">
+                <i data-lucide="chevron-down" class="h-3.5 w-3.5"></i>
+              </button>
+              <button onclick="deleteStep(${idx})" class="p-1 hover:bg-red-950/60 rounded text-slate-500 hover:text-red-400 transition" title="Delete Step">
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Step fields form -->
+          <div class="step-form-fields">
+            ${fieldsHTML}
+          </div>
+        `;
+        container.appendChild(stepDiv);
+      });
+
+      lucide.createIcons();
+    }
+
+    // Move steps up or down
+    function moveStep(idx, direction) {
+      extractStepValuesFromDOM();
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= currentRecipe.steps.length) return;
+
+      // Swap
+      const temp = currentRecipe.steps[idx];
+      currentRecipe.steps[idx] = currentRecipe.steps[targetIdx];
+      currentRecipe.steps[targetIdx] = temp;
+
+      renderSteps();
+    }
+
+    // Delete step
+    function deleteStep(idx) {
+      extractStepValuesFromDOM();
+      currentRecipe.steps.splice(idx, 1);
+      renderSteps();
+    }
+
+    // Extract all dynamic field values from the DOM editor into the currentRecipe structure
+    function extractStepValuesFromDOM() {
+      const stepItems = document.querySelectorAll(".step-item");
+      stepItems.forEach(el => {
+        const idx = parseInt(el.getAttribute("data-index"));
+        const step = currentRecipe.steps[idx];
+        if (!step) return;
+
+        if (step.type === 'goto') {
+          step.url = el.querySelector(".step-url").value;
+        } else if (step.type === 'click' || step.type === 'check' || step.type === 'uncheck' || step.type === 'waitForSelector') {
+          step.name = el.querySelector(".step-name").value;
+          step.selector = el.querySelector(".step-selector").value;
+          step.isXpath = el.querySelector(".step-xpath").checked;
+        } else if (step.type === 'fill' || step.type === 'selectOption') {
+          step.name = el.querySelector(".step-name").value;
+          step.value = el.querySelector(".step-value").value;
+          step.selector = el.querySelector(".step-selector").value;
+          step.isXpath = el.querySelector(".step-xpath").checked;
+        } else if (step.type === 'waitForResponse') {
+          step.urlContains = el.querySelector(".step-urlcontains").value;
+          step.method = el.querySelector(".step-method").value;
+        } else if (step.type === 'assertText') {
+          step.text = el.querySelector(".step-text").value;
+        } else if (step.type === 'screenshot') {
+          step.screenshotName = el.querySelector(".step-screenshotname").value;
+        } else if (step.type === 'navigateSidebar') {
+          try {
+            step.levels = JSON.parse(el.querySelector(".step-levels").value);
+          } catch(e) {}
+        }
+      });
+    }
+
+    // Edit Form Fields nested array
+    function editFormFields(stepIdx) {
+      extractStepValuesFromDOM();
+      const step = currentRecipe.steps[stepIdx];
+      const rawSpec = JSON.stringify(step.fields || [], null, 2);
+      
+      const newSpec = prompt("Edit Form Fields spec (JSON Array of FormField):", rawSpec);
+      if (newSpec === null) return; // cancel
+
+      try {
+        const parsed = JSON.parse(newSpec);
+        if (!Array.isArray(parsed)) throw new Error("Must be a JSON Array");
+        step.fields = parsed;
+        renderSteps();
+        appendConsoleLog(`📋 Updated fields array for Step ${stepIdx + 1}.`);
+      } catch (err) {
+        alert("Failed to parse JSON specs: " + err.message);
+      }
+    }
+
+    // 8. Terminal logger helper
+    function appendConsoleLog(message) {
+      const consoleOutput = document.getElementById("console-output");
+      
+      // If idle placeholder is present, clear it
+      if (consoleOutput.innerHTML.includes("[Idle]")) {
+        consoleOutput.innerHTML = "";
+      }
+
+      const logRow = document.createElement("div");
+      logRow.className = "flex items-start space-x-1 py-0.5 border-b border-slate-900/35 hover:bg-slate-900/30";
+      
+      let textClass = "text-emerald-450";
+      if (message.includes("❌") || message.includes("Error") || message.includes("🔴")) {
+        textClass = "text-red-400 font-bold";
+      } else if (message.includes("⚠️") || message.includes("Warning")) {
+        textClass = "text-yellow-400";
+      } else if (message.includes("🚀") || message.includes("▶️") || message.includes("📂") || message.includes("💾")) {
+        textClass = "text-purple-300 font-semibold";
+      } else if (message.includes("✅") || message.includes("🟢")) {
+        textClass = "text-emerald-400 font-semibold";
+      } else if (message.includes("🎯") || message.includes("Resolved")) {
+        textClass = "text-cyan-400";
+      }
+
+      logRow.innerHTML = `
+        <span class="text-slate-600 select-none">&gt;</span>
+        <span class="${textClass} break-all font-mono">${escapeHtml(message)}</span>
+      `;
+      consoleOutput.appendChild(logRow);
+      
+      // Scroll to bottom
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById("console-output").innerHTML = '<span class="text-slate-600">[Idle] Terminal cleared. Ready.</span>';
+    }
+
+    // 9. Extract Screenshot images from logs
+    function extractScreenshotsFromLogs(logs) {
+      const container = document.getElementById("screenshot-container");
+      let found = [];
+
+      logs.forEach(line => {
+        // Look for: "Saving to: C:\...\screenshots\name.png" or "Saved error screenshot to: ..."
+        const match = line.match(/screenshots[\\/]([^'"]+\.png)/i);
+        if (match && match[1]) {
+          found.push(match[1]);
+        }
+      });
+
+      if (found.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-600 text-xs">
+            No screenshots found in run logs.
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      found.forEach(filename => {
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-800 rounded-xl p-2 flex flex-col space-y-1.5 shadow hover:border-slate-750 transition cursor-pointer";
+        card.onclick = () => window.open(`/screenshots/${filename}`, '_blank');
+        
+        card.innerHTML = `
+          <div class="aspect-video bg-slate-950 rounded overflow-hidden flex items-center justify-center relative group">
+            <img src="/screenshots/${filename}" alt="${filename}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+              <i data-lucide="maximize-2" class="text-white h-5 w-5"></i>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 truncate text-center" title="${filename}">${filename}</span>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

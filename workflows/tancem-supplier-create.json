@@ -1,0 +1,147 @@
+{
+  "$schema": "./recipe_schema.json",
+  "name": "tancem-supplier-create",
+  "description": "Workflow to register a supplier in the Tancem portal.",
+  "steps": [
+    {
+      "type": "navigateSidebar",
+      "levels": {
+        "first": "Supplier Registration",
+        "second": "Supplier Registered List"
+      }
+    },
+    {
+      "type": "click",
+      "name": "Create"
+    },
+    {
+      "type": "fillForm",
+      "fields": [
+        {
+          "name": "supplierName",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "name",
+            "charSet": ["alpha"],
+            "maxLength": 20,
+            "allowSpaces": true,
+            "meaningfulWordsOnly": true
+          }
+        },
+        {
+          "name": "contactPerson",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "name",
+            "charSet": ["alpha"],
+            "minLength": 5,
+            "maxLength": 20,
+            "allowSpaces": true,
+            "meaningfulWordsOnly": true
+          }
+        },
+        {
+          "name": "officePhoneNumber",
+          "type": "input",
+          "valueType": "number",
+          "inputOptions": {
+            "mode": "companyPhoneNumber"
+          }
+        },
+        {
+          "name": "mobileNumber",
+          "type": "input",
+          "inputOptions": {
+            "mode": "phoneNumber"
+          }
+        },
+        {
+          "name": "email",
+          "type": "input",
+          "valueType": "email",
+          "inputOptions": {
+            "mode": "email"
+          }
+        },
+        {
+          "name": "panNumber",
+          "type": "input",
+          "valueType": "alphanumeric",
+          "inputOptions": {
+            "mode": "PAN"
+          }
+        },
+        {
+          "name": "website",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "websiteWithHttps"
+          }
+        },
+        {
+          "name": "gstNumber",
+          "type": "input",
+          "valueType": "alphanumeric",
+          "inputOptions": {
+            "mode": "GST"
+          }
+        },
+        {
+          "name": "country",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "country"
+          }
+        },
+        {
+          "name": "pincode",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "pincode"
+          }
+        },
+        {
+          "name": "city",
+          "type": "input",
+          "valueType": "string",
+          "inputOptions": {
+            "mode": "city"
+          }
+        },
+        {
+          "name": "supplierType",
+          "type": "dropdown",
+          "selector": "p-dropdown[formcontrolname=\"supplierType\"]",
+          "dropdownOptionSelector": "[id^=\"pn_id_\"][id$=\"_0\"]"
+        },
+        {
+          "name": "state",
+          "type": "dropdown",
+          "selector": "p-dropdown[formcontrolname=\"state\"]",
+          "dropdownOptionSelector": "[id^=\"pn_id_\"][id$=\"_0\"]"
+        },
+        {
+          "name": "district",
+          "type": "dropdown",
+          "selector": "p-dropdown[formcontrolname=\"district\"]",
+          "dropdownOptionSelector": "[id^=\"pn_id_\"][id$=\"_0\"]"
+        },
+        {
+          "name": "Address Type",
+          "type": "radio",
+          "value": "permanent",
+          "selector": "input[type='radio'][formcontrolname='type'][value='permanent']"
+        }
+      ]
+    },
+    {
+      "type": "screenshot",
+      "screenshotName": "supplier_form_filled"
+    }
+  ]
+}

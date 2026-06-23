@@ -1,14 +1,13 @@
 import { Router } from 'express';
 import controllers from '../controllers';
 // import { envUrl } from '../config';
-import { supplierRoutes } from './supplier';
+import { workflowRoutes } from './workflowRoutes';
+import { BASE_PATH } from '../config';
 
 
 
 const routes = Router()
 
-const basePath = '/tancem-automation/v1'
-
-routes.use(basePath+ '/supplier',supplierRoutes)
+routes.use(BASE_PATH, workflowRoutes);
 
 export { routes }

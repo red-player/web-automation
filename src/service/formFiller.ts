@@ -86,7 +86,11 @@ export const fillFormFields = async (page: Page, formFields: FormField[]) => {
       }
     } catch (err) {
       console.error(`❌ Error filling [${field.name}]:`, err);
-      await page.screenshot({ path: `error-${field.name}.png`, fullPage: true });
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.join(process.cwd(), 'screenshots');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      await page.screenshot({ path: path.join(dir, `error-${field.name}.png`), fullPage: true });
     }
   }
 };

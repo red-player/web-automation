@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.routes = void 0;
+const express_1 = require("express");
+// import { envUrl } from '../config';
+const workflowRoutes_1 = require("./workflowRoutes");
+const config_1 = require("../config");
+const routes = (0, express_1.Router)();
+exports.routes = routes;
+routes.use(config_1.BASE_PATH, workflowRoutes_1.workflowRoutes);

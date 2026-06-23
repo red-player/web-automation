@@ -1,0 +1,196 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workflow Recipe Schema",
+  "description": "JSON Schema for validating QA automation recipes.",
+  "type": "object",
+  "required": ["name", "steps"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the automation workflow."
+    },
+    "description": {
+      "type": "string",
+      "description": "A description of what this workflow tests or accomplishes."
+    },
+    "steps": {
+      "type": "array",
+      "description": "The ordered list of steps to execute.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "goto",
+              "click",
+              "fill",
+              "fillForm",
+              "selectOption",
+              "check",
+              "uncheck",
+              "waitForSelector",
+              "waitForResponse",
+              "assertText",
+              "screenshot",
+              "navigateSidebar"
+            ],
+            "description": "The type of automation step to perform."
+          },
+          "url": {
+            "type": "string",
+            "description": "The target URL. (For 'goto' steps. Supports {{variable}} syntax)"
+          },
+          "selector": {
+            "type": "string",
+            "description": "Playwright selector (CSS, XPath, or text) to locate the target element. Optional if 'name' is provided."
+          },
+          "isXpath": {
+            "type": "boolean",
+            "description": "Set to true if using raw CSS or XPath selectors directly. Set to false to use adaptive lookup. Defaults to false."
+          },
+          "name": {
+            "type": "string",
+            "description": "The logical field name, label, button text, or placeholder used by the self-healing locator finder to dynamically resolve the element."
+          },
+          "value": {
+            "type": "string",
+            "description": "The value to fill or option to select. (For 'fill' and 'selectOption' steps. Supports {{variable}} syntax)"
+          },
+          "fields": {
+            "type": "array",
+            "description": "List of form fields to fill out. (For 'fillForm' steps)",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the form field, matching its label or control attribute."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["input", "dropdown", "radio", "date", "textarea"],
+                  "description": "The UI element type."
+                },
+                "selector": {
+                  "type": "string",
+                  "description": "Optional direct selector override. If omitted, the self-healing engine will find it dynamically."
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "boolean"
+                  ],
+                  "description": "Optional hardcoded value or boolean selection. If omitted, a mock value will be auto-generated."
+                },
+                "dropdownOptionSelector": {
+                  "type": "string",
+                  "description": "Selector for the options inside the dropdown wrapper (e.g. standard items, PrimeNG list selectors)."
+                },
+                "valueType": {
+                  "type": "string",
+                  "enum": ["string", "number", "alphanumeric", "email", "date"],
+                  "description": "The data format, used for both generated mock data validation and runtime check rules."
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Is this field required? Toggles validation alerts."
+                },
+                "minLength": {
+                  "type": "integer",
+                  "description": "Minimum character length rule."
+                },
+                "maxLength": {
+                  "type": "integer",
+                  "description": "Maximum character length rule."
+                },
+                "exactLength": {
+                  "type": "integer",
+                  "description": "Exact character length rule."
+                },
+                "inputOptions": {
+                  "type": "object",
+                  "description": "Advanced parameters for generated mock inputs.",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "email",
+                        "phoneNumber",
+                        "name",
+                        "sentence",
+                        "PAN",
+                        "GST",
+                        "Aadhaar",
+                        "websiteWithoutHttps",
+                        "websiteWithHttps",
+                        "country",
+                        "pincode",
+                        "address",
+                        "city",
+                        "state",
+                        "companyName",
+                        "companyAddress",
+                        "companyWebsite",
+                        "companyEmail",
+                        "companyPhoneNumber"
+                      ]
+                    },
+                    "charSet": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": ["alpha", "numeric", "alphanumeric", "specialChars"]
+                      }
+                    },
+                    "allowSpaces": {
+                      "type": "boolean"
+                    },
+                    "meaningfulWordsOnly": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "levels": {
+            "type": "object",
+            "description": "Multi-level menu names to navigate to sequentially. (For 'navigateSidebar' steps. E.g. { \"first\": \"Menu\", \"second\": \"Submenu\" })",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "urlContains": {
+            "type": "string",
+            "description": "Sub-string matching pattern in network response URL. (For 'waitForResponse' steps)"
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "DELETE"],
+            "description": "HTTP request method. Defaults to POST. (For 'waitForResponse' steps)"
+          },
+          "statusCode": {
+            "type": "integer",
+            "description": "Optional expected HTTP response status code. (For 'waitForResponse' steps)"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text expected to appear in the viewport. (For 'assertText' steps. Supports {{variable}} syntax)"
+          },
+          "screenshotName": {
+            "type": "string",
+            "description": "Filename for saving the screen capture. (For 'screenshot' steps)"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Timeout threshold in milliseconds for this specific operation."
+          }
+        }
+      }
+    }
+  }
+}

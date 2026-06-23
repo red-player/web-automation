@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.workflowRoutes = void 0;
+const express_1 = require("express");
+const workflowController_1 = require("../controllers/workflowController");
+const routes = (0, express_1.Router)();
+exports.workflowRoutes = routes;
+routes.post('/run-workflow', workflowController_1.runWorkflowHandler);
+routes.get('/recipes', workflowController_1.listRecipesHandler);
+routes.get('/recipes/:name', workflowController_1.loadRecipeHandler);
+routes.post('/recipes/:name', workflowController_1.saveRecipeHandler);

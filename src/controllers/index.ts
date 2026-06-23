@@ -1,7 +1,7 @@
-import supplier from './supplier'
+import * as workflowController from './workflowController';
 
-const controllers ={
-    supplier
-}
+const controllers = {
+    workflow: workflowController
+};
 
-export default controllers
+export default controllers;
